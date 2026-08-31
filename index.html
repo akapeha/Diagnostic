@@ -18,19 +18,29 @@
     <style>
         /* Mencegah highlight biru saat di-tap di mobile */
         * { -webkit-tap-highlight-color: transparent; }
+        
+        /* Animasi kustom untuk transisi halus */
+        .fade-in {
+            animation: fadeIn 0.4s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
-<body class="bg-neutral-50 text-neutral-900 font-sans antialiased">
+<body class="bg-[#FAFAFA] text-neutral-900 font-sans antialiased min-h-screen flex flex-col">
 
     <!-- Tempat aplikasi React akan dimuat -->
-    <div id="root"></div>
+    <div id="root" class="flex-grow flex flex-col"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect } = React;
 
+        // Kumpulan Ikon SVG yang digunakan
         const Icons = {
-            ChevronDown: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m6 9 6 6 6-6"/></svg>,
-            Check: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 6 9 17l-5-5"/></svg>,
+            Check: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 6 9 17l-5-5"/></svg>,
             ArrowRight: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>,
             ArrowLeft: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>,
             BarChart2: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg>,
@@ -70,11 +80,11 @@
         ];
 
         const scoringOptions = [
-            { score: 1, label: "Sangat Tidak Sesuai / Sangat Lemah" },
-            { score: 2, label: "Kurang Sesuai / Lemah" },
-            { score: 3, label: "Cukup Sesuai / Sedang" },
-            { score: 4, label: "Sesuai / Kuat" },
-            { score: 5, label: "Sangat Sesuai / Sangat Kuat" },
+            { score: 1, label: "Sangat Tidak Sesuai" },
+            { score: 2, label: "Kurang Sesuai" },
+            { score: 3, label: "Cukup Sesuai" },
+            { score: 4, label: "Sesuai" },
+            { score: 5, label: "Sangat Sesuai" },
         ];
 
         const categoryIcons = {
@@ -88,47 +98,41 @@
             const [currentStep, setCurrentStep] = useState(0);
             const [answers, setAnswers] = useState({});
             const [isFinished, setIsFinished] = useState(false);
-            const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-            const dropdownRef = useRef(null);
+            const [animateKey, setAnimateKey] = useState(0);
 
             const totalQuestions = questions.length;
             const currentQ = questions[currentStep];
             const currentAnswer = answers[currentQ?.id];
 
-            // Menutup dropdown ketika klik di luar area
+            // Efek scroll to top setiap ganti soal
             useEffect(() => {
-                function handleClickOutside(event) {
-                if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-                    setIsDropdownOpen(false);
-                }
-                }
-                document.addEventListener("mousedown", handleClickOutside);
-                return () => document.removeEventListener("mousedown", handleClickOutside);
-            }, []);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                setAnimateKey(prev => prev + 1);
+            }, [currentStep]);
 
             const handleSelectScore = (score) => {
                 setAnswers(prev => ({ ...prev, [currentQ.id]: score }));
-                setIsDropdownOpen(false);
                 
-                // Auto-advance setelah delay singkat
-                if (currentStep < totalQuestions - 1) {
+                // Auto-advance setelah delay agar user melihat animasinya
                 setTimeout(() => {
-                    setCurrentStep(prev => prev + 1);
-                }, 400);
-                }
+                    handleNext();
+                }, 600);
             };
 
             const handleNext = () => {
                 if (currentStep < totalQuestions - 1) {
-                setCurrentStep(prev => prev + 1);
+                    setCurrentStep(prev => prev + 1);
                 } else {
-                setIsFinished(true);
+                    const isAllFilled = questions.every(q => answers[q.id] !== undefined);
+                    if (isAllFilled) {
+                        setIsFinished(true);
+                    }
                 }
             };
 
             const handlePrev = () => {
                 if (currentStep > 0) {
-                setCurrentStep(prev => prev - 1);
+                    setCurrentStep(prev => prev - 1);
                 }
             };
 
@@ -140,29 +144,29 @@
 
             const calculateResults = () => {
                 const categories = {
-                Market: { total: 0, count: 5 },
-                Operation: { total: 0, count: 5 },
-                People: { total: 0, count: 5 },
-                Finance: { total: 0, count: 5 }
+                    Market: { total: 0, count: 5 },
+                    Operation: { total: 0, count: 5 },
+                    People: { total: 0, count: 5 },
+                    Finance: { total: 0, count: 5 }
                 };
 
                 Object.keys(answers).forEach(qId => {
-                const q = questions.find(qst => qst.id === parseInt(qId));
-                if (q) {
-                    categories[q.bidang].total += answers[qId];
-                }
+                    const q = questions.find(qst => qst.id === parseInt(qId));
+                    if (q) {
+                        categories[q.bidang].total += answers[qId];
+                    }
                 });
 
                 let lowestScore = Infinity;
                 let weakestCategory = "";
 
                 Object.keys(categories).forEach(cat => {
-                const average = categories[cat].total / categories[cat].count;
-                categories[cat].average = average.toFixed(1);
-                if (average < lowestScore) {
-                    lowestScore = average;
-                    weakestCategory = cat;
-                }
+                    const average = categories[cat].total / categories[cat].count;
+                    categories[cat].average = average.toFixed(1);
+                    if (average < lowestScore) {
+                        lowestScore = average;
+                        weakestCategory = cat;
+                    }
                 });
 
                 return { categories, weakestCategory, lowestScore };
@@ -172,190 +176,177 @@
                 const { categories, weakestCategory } = calculateResults();
                 
                 return (
-                <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-4 sm:p-8 font-sans">
-                    <div className="w-full max-w-3xl bg-white rounded-2xl shadow-xl border border-neutral-200 overflow-hidden">
-                    
-                    <div className="bg-black text-white p-8 sm:p-10 text-center relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-orange-600"></div>
-                        <Icons.BarChart2 className="w-12 h-12 mx-auto mb-4 text-orange-400 opacity-90" />
-                        <h1 className="text-3xl font-light tracking-tight mb-2 uppercase">HASIL DIAGNOSTIK SCALE UP</h1>
-                        <p className="text-neutral-400">Analisis kesiapan perusahaan Anda berdasarkan 4 pilar utama.</p>
-                    </div>
-
-                    <div className="p-8 sm:p-10">
-                        {/* Area Terlemah */}
-                        <div className="mb-10 bg-orange-50/50 border-l-4 border-orange-500 p-6 rounded-r-xl">
-                        <div className="flex items-start">
-                            <Icons.AlertCircle className="w-6 h-6 text-orange-600 mr-4 flex-shrink-0 mt-1" />
-                            <div>
-                            <h3 className="text-lg font-semibold text-black mb-1">Prioritas Perbaikan: <span className="uppercase text-orange-600">{weakestCategory}</span></h3>
-                            <p className="text-neutral-600 text-sm leading-relaxed">
-                                Berdasarkan asesmen, area <strong className="text-black">{weakestCategory}</strong> memiliki skor rata-rata terendah. 
-                                Ini adalah <em>bottleneck</em> utama yang mungkin menghambat proses scale-up perusahaan Anda saat ini. 
-                                Sangat disarankan untuk memprioritaskan penyusunan strategi dan perbaikan pada aspek ini.
-                            </p>
-                            </div>
-                        </div>
-                        </div>
-
-                        {/* Breakdown Skor */}
-                        <h4 className="text-sm font-semibold uppercase tracking-wider text-neutral-500 mb-6">Skor Per Kategori (Maks. 5.0)</h4>
-                        <div className="space-y-6">
-                        {Object.keys(categories).map((cat) => {
-                            const data = categories[cat];
-                            const percentage = (data.average / 5) * 100;
-                            const isWeakest = cat === weakestCategory;
+                    <div className="flex-grow flex items-center justify-center p-4 sm:p-8 bg-[#FAFAFA] fade-in">
+                        <div className="w-full max-w-2xl bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-neutral-100 overflow-hidden">
                             
-                            return (
-                            <div key={cat} className="relative">
-                                <div className="flex justify-between mb-2">
-                                <span className={`font-medium flex items-center gap-2 ${isWeakest ? 'text-black font-bold' : 'text-neutral-700'}`}>
-                                    <span className="p-1.5 bg-neutral-100 rounded-md">{categoryIcons[cat]}</span> {cat}
-                                </span>
-                                <span className={`font-semibold ${isWeakest ? 'text-orange-600' : 'text-neutral-500'}`}>
-                                    {data.average} <span className="text-xs font-normal text-neutral-400">/ 5.0</span>
-                                </span>
+                            <div className="bg-black text-white p-10 text-center relative">
+                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-orange-600"></div>
+                                <Icons.BarChart2 className="w-12 h-12 mx-auto mb-4 text-orange-500 opacity-90" />
+                                <h1 className="text-2xl sm:text-3xl font-light tracking-tight mb-2">HASIL DIAGNOSTIK</h1>
+                                <p className="text-neutral-400 text-sm">Analisis kesiapan Scale-Up perusahaan Anda.</p>
+                            </div>
+
+                            <div className="p-8 sm:p-10">
+                                <div className="mb-10 bg-orange-50 border border-orange-100 p-6 rounded-xl relative overflow-hidden">
+                                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-orange-500"></div>
+                                    <div className="flex items-start">
+                                        <Icons.AlertCircle className="w-6 h-6 text-orange-600 mr-4 flex-shrink-0 mt-0.5" />
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-black mb-1">Prioritas Perbaikan: <span className="uppercase text-orange-600">{weakestCategory}</span></h3>
+                                            <p className="text-neutral-600 text-sm leading-relaxed">
+                                                Area <strong className="text-black">{weakestCategory}</strong> memiliki skor terendah. 
+                                                Ini adalah <em>bottleneck</em> utama yang perlu segera dibenahi sebelum mengeksekusi strategi scale-up yang lebih agresif.
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="h-3 w-full bg-neutral-100 rounded-full overflow-hidden">
-                                <div 
-                                    className={`h-full rounded-full transition-all duration-1000 ease-out ${isWeakest ? 'bg-orange-500' : 'bg-black'}`}
-                                    style={{ width: `${percentage}%` }}
-                                ></div>
+
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-400 mb-6">Skor Per Kategori (Maks. 5.0)</h4>
+                                <div className="space-y-6">
+                                    {Object.keys(categories).map((cat) => {
+                                        const data = categories[cat];
+                                        const percentage = (data.average / 5) * 100;
+                                        const isWeakest = cat === weakestCategory;
+                                        
+                                        return (
+                                            <div key={cat} className="relative">
+                                                <div className="flex justify-between mb-2">
+                                                    <span className={`font-medium flex items-center gap-2 ${isWeakest ? 'text-black' : 'text-neutral-600'}`}>
+                                                        <span className={`p-1.5 rounded-md ${isWeakest ? 'bg-orange-100' : 'bg-neutral-100'}`}>{categoryIcons[cat]}</span> 
+                                                        {cat}
+                                                    </span>
+                                                    <span className={`font-semibold ${isWeakest ? 'text-orange-600' : 'text-black'}`}>
+                                                        {data.average} <span className="text-xs font-normal text-neutral-400">/ 5.0</span>
+                                                    </span>
+                                                </div>
+                                                <div className="h-2 w-full bg-neutral-100 rounded-full overflow-hidden">
+                                                    <div 
+                                                        className={`h-full rounded-full transition-all duration-1000 ease-out ${isWeakest ? 'bg-orange-500' : 'bg-neutral-800'}`}
+                                                        style={{ width: `${percentage}%` }}
+                                                    ></div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                <div className="mt-12 text-center border-t border-neutral-100 pt-8">
+                                    <button 
+                                        onClick={handleRestart}
+                                        className="inline-flex items-center px-6 py-3 text-sm font-medium rounded-full text-neutral-600 bg-neutral-100 hover:bg-neutral-200 transition-colors"
+                                    >
+                                        <Icons.RefreshCw className="w-4 h-4 mr-2" />
+                                        Mulai Ulang Asesmen
+                                    </button>
                                 </div>
                             </div>
-                            );
-                        })}
-                        </div>
-
-                        <div className="mt-12 text-center">
-                        <button 
-                            onClick={handleRestart}
-                            className="inline-flex items-center px-6 py-3 border border-neutral-300 shadow-sm text-sm font-medium rounded-full text-black bg-white hover:bg-neutral-50 hover:border-orange-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors"
-                        >
-                            <Icons.RefreshCw className="w-4 h-4 mr-2 text-orange-500" />
-                            Mulai Ulang Asesmen
-                        </button>
                         </div>
                     </div>
-                    </div>
-                </div>
                 );
             }
 
             const progressPercentage = ((currentStep) / totalQuestions) * 100;
 
             return (
-                <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-4 sm:p-8 font-sans">
-                <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl border border-neutral-100 overflow-hidden flex flex-col min-h-[600px] relative">
+                <div className="flex-grow flex flex-col items-center p-4 sm:p-8 w-full max-w-3xl mx-auto">
                     
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-orange-600"></div>
-
-                    {/* Header */}
-                    <div className="px-8 pt-8 pb-6 bg-white border-b border-neutral-100">
-                    <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-sm font-semibold tracking-widest uppercase text-black">DIAGNOSTIK KESIAPAN SCALE UP</h2>
-                        <span className="text-xs font-medium px-3 py-1 bg-orange-50 text-orange-600 border border-orange-100 rounded-full">
-                        {currentStep + 1} / {totalQuestions}
-                        </span>
-                    </div>
-                    
-                    <div className="h-1.5 w-full bg-neutral-100 rounded-full overflow-hidden">
-                        <div 
-                        className="h-full bg-orange-500 transition-all duration-500 ease-out"
-                        style={{ width: `${progressPercentage}%` }}
-                        ></div>
-                    </div>
+                    {/* Header Sticky */}
+                    <div className="w-full pt-4 pb-8 border-b border-neutral-200/60 sticky top-0 bg-[#FAFAFA] z-10">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-sm font-bold tracking-widest uppercase text-neutral-400">DIAGNOSTIK KESIAPAN SCALE UP</h2>
+                            <span className="text-xs font-bold px-3 py-1 bg-orange-100 text-orange-700 rounded-full">
+                                {currentStep + 1} / {totalQuestions}
+                            </span>
+                        </div>
+                        
+                        <div className="h-1 w-full bg-neutral-200/60 rounded-full overflow-hidden">
+                            <div 
+                                className="h-full bg-orange-500 transition-all duration-500 ease-out"
+                                style={{ width: `${progressPercentage}%` }}
+                            ></div>
+                        </div>
                     </div>
 
-                    {/* Pertanyaan */}
-                    <div className="flex-1 p-8 sm:p-12 flex flex-col justify-center">
-                    <div className="mb-2">
-                        <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-black bg-neutral-50 border border-neutral-100 px-3 py-1.5 rounded-md">
-                        {categoryIcons[currentQ.bidang]} {currentQ.bidang}
-                        </span>
-                        <span className="inline-block ml-3 text-sm text-neutral-400 font-medium">
-                        &bull; <span className="text-neutral-600">{currentQ.aspek}</span>
-                        </span>
-                    </div>
-                    
-                    <h3 className="text-2xl sm:text-3xl font-light text-black mt-6 mb-10 leading-snug">
-                        "{currentQ.pernyataan}"
-                    </h3>
+                    {/* Question Content */}
+                    <div className="w-full flex-grow flex flex-col py-8 sm:py-12" key={animateKey}>
+                        
+                        <div className="mb-6 fade-in">
+                            <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-orange-700 bg-orange-100 px-3 py-1.5 rounded-full">
+                                {categoryIcons[currentQ.bidang]} {currentQ.bidang}
+                            </span>
+                            <span className="inline-block mt-2 sm:mt-0 sm:ml-4 text-sm text-neutral-500 font-medium">
+                                {currentQ.aspek}
+                            </span>
+                        </div>
+                        
+                        <h3 className="text-2xl sm:text-4xl font-light text-black mb-12 leading-tight sm:leading-tight tracking-tight fade-in">
+                            "{currentQ.pernyataan}"
+                        </h3>
 
-                    {/* Dropdown Interaktif */}
-                    <div className="relative mt-auto" ref={dropdownRef}>
-                        <label className="block text-sm font-medium text-neutral-500 mb-2">Penilaian Anda (1-5)</label>
+                        {/* Interactive List (replaces dropdown) */}
+                        <div className="mt-auto space-y-3 fade-in">
+                            {scoringOptions.map((option) => {
+                                const isSelected = currentAnswer === option.score;
+                                return (
+                                    <button
+                                        key={option.score}
+                                        onClick={() => handleSelectScore(option.score)}
+                                        className={`w-full group text-left px-5 py-4 rounded-2xl border-2 transition-all duration-200 flex items-center justify-between
+                                            ${isSelected 
+                                                ? 'bg-orange-50 border-orange-500 shadow-[0_4px_14px_0_rgba(249,115,22,0.1)]' 
+                                                : 'bg-white border-white hover:border-neutral-200 hover:bg-neutral-50 shadow-sm'
+                                            }
+                                        `}
+                                    >
+                                        <div className="flex items-center">
+                                            <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold mr-4 transition-colors
+                                                ${isSelected ? 'bg-orange-500 text-white' : 'bg-neutral-100 text-neutral-500 group-hover:bg-neutral-200'}
+                                            `}>
+                                                {option.score}
+                                            </div>
+                                            <span className={`text-base font-medium transition-colors ${isSelected ? 'text-black' : 'text-neutral-700 group-hover:text-black'}`}>
+                                                {option.label}
+                                            </span>
+                                        </div>
+
+                                        <div className={`transition-all duration-200 ${isSelected ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}>
+                                            <Icons.Check className="w-5 h-5 text-orange-500" />
+                                        </div>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Footer Navigation */}
+                    <div className="w-full pt-6 pb-8 border-t border-neutral-200/60 flex items-center justify-between fade-in mt-4">
                         <button
-                        type="button"
-                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                        className={`w-full flex items-center justify-between px-5 py-4 bg-white border-2 rounded-xl text-left transition-colors ${
-                            isDropdownOpen ? 'border-orange-300 ring-4 ring-orange-50' : 'border-neutral-200 hover:border-neutral-300'
-                        }`}
+                            onClick={handlePrev}
+                            disabled={currentStep === 0}
+                            className={`flex items-center px-4 py-2 text-sm font-medium rounded-full transition-colors ${
+                                currentStep === 0 
+                                    ? 'text-neutral-300 cursor-not-allowed opacity-0' 
+                                    : 'text-neutral-500 hover:bg-neutral-200 hover:text-black'
+                            }`}
                         >
-                        <span className={`block truncate ${currentAnswer ? 'text-black font-medium' : 'text-neutral-400'}`}>
-                            {currentAnswer 
-                            ? scoringOptions.find(opt => opt.score === currentAnswer)?.label 
-                            : 'Pilih kondisi riil perusahaan saat ini...'}
-                        </span>
-                        <Icons.ChevronDown className={`w-5 h-5 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180 text-orange-500' : 'text-neutral-400'}`} />
+                            <Icons.ArrowLeft className="w-4 h-4 mr-2" />
+                            Sebelumnya
                         </button>
 
-                        {isDropdownOpen && (
-                            <div className="absolute z-10 w-full mt-2 bg-white border border-neutral-200 rounded-xl shadow-lg overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                            <ul className="max-h-60 overflow-auto py-1">
-                                {scoringOptions.map((option) => (
-                                <li key={option.score}>
-                                    <button
-                                    type="button"
-                                    onClick={() => handleSelectScore(option.score)}
-                                    className={`w-full text-left px-5 py-3 flex items-center justify-between hover:bg-orange-50 transition-colors ${currentAnswer === option.score ? 'bg-orange-50/50' : ''}`}
-                                    >
-                                    <div>
-                                        <span className={`font-semibold mr-2 ${currentAnswer === option.score ? 'text-orange-600' : 'text-black'}`}>{option.score}</span>
-                                        <span className="text-neutral-600 text-sm">{option.label.split('/')[0]}</span>
-                                    </div>
-                                    {currentAnswer === option.score && (
-                                        <Icons.Check className="w-5 h-5 text-orange-500" />
-                                    )}
-                                    </button>
-                                </li>
-                                ))}
-                            </ul>
-                            </div>
-                        )}
-                    </div>
+                        <button
+                            onClick={handleNext}
+                            disabled={!currentAnswer}
+                            className={`flex items-center px-6 py-3 text-sm font-bold rounded-full transition-all duration-300 ${
+                                !currentAnswer
+                                    ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                                    : 'bg-black text-white hover:bg-neutral-800 hover:shadow-lg transform hover:-translate-y-0.5'
+                            }`}
+                        >
+                            {currentStep === totalQuestions - 1 ? 'Lihat Hasil Asesmen' : 'Selanjutnya'}
+                            <Icons.ArrowRight className={`w-4 h-4 ml-2 ${currentAnswer ? 'text-orange-400' : ''}`} />
+                        </button>
                     </div>
 
-                    {/* Navigasi Footer */}
-                    <div className="p-6 bg-neutral-50 border-t border-neutral-100 flex items-center justify-between rounded-b-2xl">
-                    <button
-                        onClick={handlePrev}
-                        disabled={currentStep === 0}
-                        className={`flex items-center px-4 py-2 text-sm font-medium rounded-full transition-colors ${
-                        currentStep === 0 
-                            ? 'text-neutral-300 cursor-not-allowed' 
-                            : 'text-neutral-600 hover:bg-neutral-200'
-                        }`}
-                    >
-                        <Icons.ArrowLeft className="w-4 h-4 mr-2" />
-                        Kembali
-                    </button>
-
-                    <button
-                        onClick={handleNext}
-                        disabled={!currentAnswer}
-                        className={`flex items-center px-6 py-2.5 text-sm font-medium rounded-full transition-all ${
-                        !currentAnswer
-                            ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
-                            : 'bg-black text-white hover:bg-neutral-800 shadow-md hover:shadow-lg'
-                        }`}
-                    >
-                        {currentStep === totalQuestions - 1 ? 'Lihat Hasil' : 'Selanjutnya'}
-                        <Icons.ArrowRight className={`w-4 h-4 ml-2 ${currentAnswer ? 'text-orange-400' : ''}`} />
-                    </button>
-                    </div>
-
-                </div>
                 </div>
             );
         }
