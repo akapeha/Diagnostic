@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnostik Kesiapan Scale Up</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel untuk menerjemahkan JSX di browser -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Mencegah highlight biru saat di-tap di mobile */
+        * { -webkit-tap-highlight-color: transparent; }
+    </style>
+</head>
+<body class="bg-neutral-50 text-neutral-900 font-sans antialiased">
+
+    <!-- Tempat aplikasi React akan dimuat -->
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const Icons = {
+            ChevronDown: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m6 9 6 6 6-6"/></svg>,
+            Check: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 6 9 17l-5-5"/></svg>,
+            ArrowRight: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>,
+            ArrowLeft: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>,
+            BarChart2: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg>,
+            AlertCircle: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>,
+            RefreshCw: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>,
+            Briefcase: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>,
+            Settings: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>,
+            Users: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+            DollarSign: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        };
+
+        const questions = [
+            // Market
+            { id: 1, bidang: 'Market', aspek: 'Pemahaman Customer', pernyataan: 'Kami sudah memahami pain point utama customer secara mendalam berdasarkan data & feedback, bukan asumsi.' },
+            { id: 2, bidang: 'Market', aspek: 'Positioning & Brand', pernyataan: 'Kami sudah memiliki positioning yang jelas serta dipahami dengan baik oleh customer.' },
+            { id: 3, bidang: 'Market', aspek: 'Marketing', pernyataan: 'Kami sudah memiliki strategi marketing yang efektif untuk mendatangkan calon customer dan membuat brand kami semakin dikenal.' },
+            { id: 4, bidang: 'Market', aspek: 'Sales & Pertumbuhan Revenue', pernyataan: 'Kami sudah memiliki metode mendatangkan customer dan penjualan kami masih terus bertumbuh.' },
+            { id: 5, bidang: 'Market', aspek: 'Competitive Advantage', pernyataan: 'Kami sudah memiliki keunggulan kompetitif yang sulit ditiru dan cukup adaptif terhadap perubahan pasar.' },
+            // Operation
+            { id: 6, bidang: 'Operation', aspek: 'Proses & SOP', pernyataan: 'Kami sudah memiliki SOP yang jelas untuk proses kunci bisnis dan dijalankan secara konsisten.' },
+            { id: 7, bidang: 'Operation', aspek: 'Quality Control', pernyataan: 'Kami sudah memiliki sistem QC yang mampu menjaga kualitas produk/layanan secara konsisten.' },
+            { id: 8, bidang: 'Operation', aspek: 'Efisiensi Produksi/Supply Chain', pernyataan: 'Rantai pasok/produksi kami berjalan lancar tanpa sering terhambat.' },
+            { id: 9, bidang: 'Operation', aspek: 'Teknologi & Sistem', pernyataan: 'Kami sudah memanfaatkan teknologi/sistem yang terintegrasi untuk mendukung efisiensi operasional.' },
+            { id: 10, bidang: 'Operation', aspek: 'Risk Management & Business Continuity', pernyataan: 'Kami sudah memiliki identifikasi risiko utama beserta rencana mitigasi/business continuity yang memadai.' },
+            // People
+            { id: 11, bidang: 'People', aspek: 'Struktur Organisasi & Kejelasan Peran', pernyataan: 'Kami sudah memiliki struktur organisasi, job desc, dan reporting line yang jelas dan dipahami seluruh tim.' },
+            { id: 12, bidang: 'People', aspek: 'Rekrutmen & Talent Acquisition', pernyataan: 'Kami sudah mampu merekrut talent berkualitas sesuai kebutuhan secara tepat waktu.' },
+            { id: 13, bidang: 'People', aspek: 'Training & Development', pernyataan: 'Kami sudah memiliki program pengembangan skill karyawan yang berjalan rutin dan efektif.' },
+            { id: 14, bidang: 'People', aspek: 'Culture & Engagement', pernyataan: 'Tingkat engagement dan motivasi karyawan kami tergolong sehat.' },
+            { id: 15, bidang: 'People', aspek: 'Leadership & Succession Planning', pernyataan: 'Kami sudah memiliki leader lapis kedua yang siap mengambil keputusan tanpa bergantung penuh pada owner.' },
+            // Finance
+            { id: 16, bidang: 'Finance', aspek: 'Perencanaan & Budgeting', pernyataan: 'Kami sudah memiliki budget dan target keuangan yang jelas serta terpantau realisasinya.' },
+            { id: 17, bidang: 'Finance', aspek: 'Cash Flow Management', pernyataan: 'Arus kas bisnis kami sehat, dengan buffer dana yang memadai untuk kondisi darurat.' },
+            { id: 18, bidang: 'Finance', aspek: 'Financial Reporting & Control', pernyataan: 'Kami sudah memiliki laporan keuangan yang akurat, update, dan digunakan aktif untuk pengambilan keputusan.' },
+            { id: 19, bidang: 'Finance', aspek: 'Profitabilitas & Cost Management', pernyataan: 'Kami sudah memahami margin profit per lini bisnis dan mengendalikan biaya secara efisien.' },
+            { id: 20, bidang: 'Finance', aspek: 'Funding & Struktur Modal', pernyataan: 'Kami sudah memiliki sumber dana untuk membiayai ekspansi.' },
+        ];
+
+        const scoringOptions = [
+            { score: 1, label: "Sangat Tidak Sesuai / Sangat Lemah" },
+            { score: 2, label: "Kurang Sesuai / Lemah" },
+            { score: 3, label: "Cukup Sesuai / Sedang" },
+            { score: 4, label: "Sesuai / Kuat" },
+            { score: 5, label: "Sangat Sesuai / Sangat Kuat" },
+        ];
+
+        const categoryIcons = {
+            Market: <Icons.Briefcase className="w-4 h-4 text-orange-500" />,
+            Operation: <Icons.Settings className="w-4 h-4 text-orange-500" />,
+            People: <Icons.Users className="w-4 h-4 text-orange-500" />,
+            Finance: <Icons.DollarSign className="w-4 h-4 text-orange-500" />
+        };
+
+        function App() {
+            const [currentStep, setCurrentStep] = useState(0);
+            const [answers, setAnswers] = useState({});
+            const [isFinished, setIsFinished] = useState(false);
+            const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+            const dropdownRef = useRef(null);
+
+            const totalQuestions = questions.length;
+            const currentQ = questions[currentStep];
+            const currentAnswer = answers[currentQ?.id];
+
+            // Menutup dropdown ketika klik di luar area
+            useEffect(() => {
+                function handleClickOutside(event) {
+                if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                    setIsDropdownOpen(false);
+                }
+                }
+                document.addEventListener("mousedown", handleClickOutside);
+                return () => document.removeEventListener("mousedown", handleClickOutside);
+            }, []);
+
+            const handleSelectScore = (score) => {
+                setAnswers(prev => ({ ...prev, [currentQ.id]: score }));
+                setIsDropdownOpen(false);
+                
+                // Auto-advance setelah delay singkat
+                if (currentStep < totalQuestions - 1) {
+                setTimeout(() => {
+                    setCurrentStep(prev => prev + 1);
+                }, 400);
+                }
+            };
+
+            const handleNext = () => {
+                if (currentStep < totalQuestions - 1) {
+                setCurrentStep(prev => prev + 1);
+                } else {
+                setIsFinished(true);
+                }
+            };
+
+            const handlePrev = () => {
+                if (currentStep > 0) {
+                setCurrentStep(prev => prev - 1);
+                }
+            };
+
+            const handleRestart = () => {
+                setAnswers({});
+                setCurrentStep(0);
+                setIsFinished(false);
+            };
+
+            const calculateResults = () => {
+                const categories = {
+                Market: { total: 0, count: 5 },
+                Operation: { total: 0, count: 5 },
+                People: { total: 0, count: 5 },
+                Finance: { total: 0, count: 5 }
+                };
+
+                Object.keys(answers).forEach(qId => {
+                const q = questions.find(qst => qst.id === parseInt(qId));
+                if (q) {
+                    categories[q.bidang].total += answers[qId];
+                }
+                });
+
+                let lowestScore = Infinity;
+                let weakestCategory = "";
+
+                Object.keys(categories).forEach(cat => {
+                const average = categories[cat].total / categories[cat].count;
+                categories[cat].average = average.toFixed(1);
+                if (average < lowestScore) {
+                    lowestScore = average;
+                    weakestCategory = cat;
+                }
+                });
+
+                return { categories, weakestCategory, lowestScore };
+            };
+
+            if (isFinished) {
+                const { categories, weakestCategory } = calculateResults();
+                
+                return (
+                <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-4 sm:p-8 font-sans">
+                    <div className="w-full max-w-3xl bg-white rounded-2xl shadow-xl border border-neutral-200 overflow-hidden">
+                    
+                    <div className="bg-black text-white p-8 sm:p-10 text-center relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-orange-600"></div>
+                        <Icons.BarChart2 className="w-12 h-12 mx-auto mb-4 text-orange-400 opacity-90" />
+                        <h1 className="text-3xl font-light tracking-tight mb-2 uppercase">HASIL DIAGNOSTIK SCALE UP</h1>
+                        <p className="text-neutral-400">Analisis kesiapan perusahaan Anda berdasarkan 4 pilar utama.</p>
+                    </div>
+
+                    <div className="p-8 sm:p-10">
+                        {/* Area Terlemah */}
+                        <div className="mb-10 bg-orange-50/50 border-l-4 border-orange-500 p-6 rounded-r-xl">
+                        <div className="flex items-start">
+                            <Icons.AlertCircle className="w-6 h-6 text-orange-600 mr-4 flex-shrink-0 mt-1" />
+                            <div>
+                            <h3 className="text-lg font-semibold text-black mb-1">Prioritas Perbaikan: <span className="uppercase text-orange-600">{weakestCategory}</span></h3>
+                            <p className="text-neutral-600 text-sm leading-relaxed">
+                                Berdasarkan asesmen, area <strong className="text-black">{weakestCategory}</strong> memiliki skor rata-rata terendah. 
+                                Ini adalah <em>bottleneck</em> utama yang mungkin menghambat proses scale-up perusahaan Anda saat ini. 
+                                Sangat disarankan untuk memprioritaskan penyusunan strategi dan perbaikan pada aspek ini.
+                            </p>
+                            </div>
+                        </div>
+                        </div>
+
+                        {/* Breakdown Skor */}
+                        <h4 className="text-sm font-semibold uppercase tracking-wider text-neutral-500 mb-6">Skor Per Kategori (Maks. 5.0)</h4>
+                        <div className="space-y-6">
+                        {Object.keys(categories).map((cat) => {
+                            const data = categories[cat];
+                            const percentage = (data.average / 5) * 100;
+                            const isWeakest = cat === weakestCategory;
+                            
+                            return (
+                            <div key={cat} className="relative">
+                                <div className="flex justify-between mb-2">
+                                <span className={`font-medium flex items-center gap-2 ${isWeakest ? 'text-black font-bold' : 'text-neutral-700'}`}>
+                                    <span className="p-1.5 bg-neutral-100 rounded-md">{categoryIcons[cat]}</span> {cat}
+                                </span>
+                                <span className={`font-semibold ${isWeakest ? 'text-orange-600' : 'text-neutral-500'}`}>
+                                    {data.average} <span className="text-xs font-normal text-neutral-400">/ 5.0</span>
+                                </span>
+                                </div>
+                                <div className="h-3 w-full bg-neutral-100 rounded-full overflow-hidden">
+                                <div 
+                                    className={`h-full rounded-full transition-all duration-1000 ease-out ${isWeakest ? 'bg-orange-500' : 'bg-black'}`}
+                                    style={{ width: `${percentage}%` }}
+                                ></div>
+                                </div>
+                            </div>
+                            );
+                        })}
+                        </div>
+
+                        <div className="mt-12 text-center">
+                        <button 
+                            onClick={handleRestart}
+                            className="inline-flex items-center px-6 py-3 border border-neutral-300 shadow-sm text-sm font-medium rounded-full text-black bg-white hover:bg-neutral-50 hover:border-orange-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors"
+                        >
+                            <Icons.RefreshCw className="w-4 h-4 mr-2 text-orange-500" />
+                            Mulai Ulang Asesmen
+                        </button>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+                );
+            }
+
+            const progressPercentage = ((currentStep) / totalQuestions) * 100;
+
+            return (
+                <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-4 sm:p-8 font-sans">
+                <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl border border-neutral-100 overflow-hidden flex flex-col min-h-[600px] relative">
+                    
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-orange-600"></div>
+
+                    {/* Header */}
+                    <div className="px-8 pt-8 pb-6 bg-white border-b border-neutral-100">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-sm font-semibold tracking-widest uppercase text-black">DIAGNOSTIK KESIAPAN SCALE UP</h2>
+                        <span className="text-xs font-medium px-3 py-1 bg-orange-50 text-orange-600 border border-orange-100 rounded-full">
+                        {currentStep + 1} / {totalQuestions}
+                        </span>
+                    </div>
+                    
+                    <div className="h-1.5 w-full bg-neutral-100 rounded-full overflow-hidden">
+                        <div 
+                        className="h-full bg-orange-500 transition-all duration-500 ease-out"
+                        style={{ width: `${progressPercentage}%` }}
+                        ></div>
+                    </div>
+                    </div>
+
+                    {/* Pertanyaan */}
+                    <div className="flex-1 p-8 sm:p-12 flex flex-col justify-center">
+                    <div className="mb-2">
+                        <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-black bg-neutral-50 border border-neutral-100 px-3 py-1.5 rounded-md">
+                        {categoryIcons[currentQ.bidang]} {currentQ.bidang}
+                        </span>
+                        <span className="inline-block ml-3 text-sm text-neutral-400 font-medium">
+                        &bull; <span className="text-neutral-600">{currentQ.aspek}</span>
+                        </span>
+                    </div>
+                    
+                    <h3 className="text-2xl sm:text-3xl font-light text-black mt-6 mb-10 leading-snug">
+                        "{currentQ.pernyataan}"
+                    </h3>
+
+                    {/* Dropdown Interaktif */}
+                    <div className="relative mt-auto" ref={dropdownRef}>
+                        <label className="block text-sm font-medium text-neutral-500 mb-2">Penilaian Anda (1-5)</label>
+                        <button
+                        type="button"
+                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                        className={`w-full flex items-center justify-between px-5 py-4 bg-white border-2 rounded-xl text-left transition-colors ${
+                            isDropdownOpen ? 'border-orange-300 ring-4 ring-orange-50' : 'border-neutral-200 hover:border-neutral-300'
+                        }`}
+                        >
+                        <span className={`block truncate ${currentAnswer ? 'text-black font-medium' : 'text-neutral-400'}`}>
+                            {currentAnswer 
+                            ? scoringOptions.find(opt => opt.score === currentAnswer)?.label 
+                            : 'Pilih kondisi riil perusahaan saat ini...'}
+                        </span>
+                        <Icons.ChevronDown className={`w-5 h-5 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180 text-orange-500' : 'text-neutral-400'}`} />
+                        </button>
+
+                        {isDropdownOpen && (
+                            <div className="absolute z-10 w-full mt-2 bg-white border border-neutral-200 rounded-xl shadow-lg overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                            <ul className="max-h-60 overflow-auto py-1">
+                                {scoringOptions.map((option) => (
+                                <li key={option.score}>
+                                    <button
+                                    type="button"
+                                    onClick={() => handleSelectScore(option.score)}
+                                    className={`w-full text-left px-5 py-3 flex items-center justify-between hover:bg-orange-50 transition-colors ${currentAnswer === option.score ? 'bg-orange-50/50' : ''}`}
+                                    >
+                                    <div>
+                                        <span className={`font-semibold mr-2 ${currentAnswer === option.score ? 'text-orange-600' : 'text-black'}`}>{option.score}</span>
+                                        <span className="text-neutral-600 text-sm">{option.label.split('/')[0]}</span>
+                                    </div>
+                                    {currentAnswer === option.score && (
+                                        <Icons.Check className="w-5 h-5 text-orange-500" />
+                                    )}
+                                    </button>
+                                </li>
+                                ))}
+                            </ul>
+                            </div>
+                        )}
+                    </div>
+                    </div>
+
+                    {/* Navigasi Footer */}
+                    <div className="p-6 bg-neutral-50 border-t border-neutral-100 flex items-center justify-between rounded-b-2xl">
+                    <button
+                        onClick={handlePrev}
+                        disabled={currentStep === 0}
+                        className={`flex items-center px-4 py-2 text-sm font-medium rounded-full transition-colors ${
+                        currentStep === 0 
+                            ? 'text-neutral-300 cursor-not-allowed' 
+                            : 'text-neutral-600 hover:bg-neutral-200'
+                        }`}
+                    >
+                        <Icons.ArrowLeft className="w-4 h-4 mr-2" />
+                        Kembali
+                    </button>
+
+                    <button
+                        onClick={handleNext}
+                        disabled={!currentAnswer}
+                        className={`flex items-center px-6 py-2.5 text-sm font-medium rounded-full transition-all ${
+                        !currentAnswer
+                            ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                            : 'bg-black text-white hover:bg-neutral-800 shadow-md hover:shadow-lg'
+                        }`}
+                    >
+                        {currentStep === totalQuestions - 1 ? 'Lihat Hasil' : 'Selanjutnya'}
+                        <Icons.ArrowRight className={`w-4 h-4 ml-2 ${currentAnswer ? 'text-orange-400' : ''}`} />
+                    </button>
+                    </div>
+
+                </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
