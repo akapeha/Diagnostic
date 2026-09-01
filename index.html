@@ -157,71 +157,113 @@
                     }
                 });
 
-                let lowestScore = Infinity;
-                let weakestCategory = "";
-
+                // Hitung Rata-rata
                 Object.keys(categories).forEach(cat => {
-                    const average = categories[cat].total / categories[cat].count;
-                    categories[cat].average = average.toFixed(1);
-                    if (average < lowestScore) {
-                        lowestScore = average;
-                        weakestCategory = cat;
-                    }
+                    categories[cat].average = parseFloat((categories[cat].total / categories[cat].count).toFixed(1));
                 });
 
-                return { categories, weakestCategory, lowestScore };
+                // 1. Kriteria Kesiapan Scale Up (Market >= 4)
+                const isReady = categories['Market'].average >= 4;
+
+                // 2. Tentukan area yang perlu diperbaiki (Skor < 4) 
+                // Diurutkan berdasarkan hierarki prioritas
+                const priorityOrder = ['Market', 'People', 'Operation', 'Finance'];
+                const needsImprovement = priorityOrder.filter(cat => categories[cat].average < 4);
+                
+                // Prioritas utama adalah urutan pertama dari array yang butuh perbaikan
+                const topPriority = needsImprovement.length > 0 ? needsImprovement[0] : null;
+
+                return { categories, isReady, needsImprovement, topPriority };
             };
 
             if (isFinished) {
-                const { categories, weakestCategory } = calculateResults();
+                const { categories, isReady, needsImprovement, topPriority } = calculateResults();
                 
                 return (
                     <div className="flex-grow flex items-center justify-center p-4 sm:p-8 bg-[#FAFAFA] fade-in">
-                        <div className="w-full max-w-2xl bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-neutral-100 overflow-hidden">
+                        <div className="w-full max-w-2xl bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-neutral-100">
                             
-                            <div className="bg-black text-white p-10 text-center relative">
-                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-orange-600"></div>
+                            <div className="bg-black text-white p-10 text-center relative rounded-t-2xl">
+                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-orange-600 rounded-t-2xl"></div>
                                 <Icons.BarChart2 className="w-12 h-12 mx-auto mb-4 text-orange-500 opacity-90" />
                                 <h1 className="text-2xl sm:text-3xl font-light tracking-tight mb-2">HASIL DIAGNOSTIK</h1>
                                 <p className="text-neutral-400 text-sm">Analisis kesiapan Scale-Up perusahaan Anda.</p>
                             </div>
 
                             <div className="p-8 sm:p-10">
-                                <div className="mb-10 bg-orange-50 border border-orange-100 p-6 rounded-xl relative overflow-hidden">
-                                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-orange-500"></div>
-                                    <div className="flex items-start">
-                                        <Icons.AlertCircle className="w-6 h-6 text-orange-600 mr-4 flex-shrink-0 mt-0.5" />
-                                        <div>
-                                            <h3 className="text-lg font-semibold text-black mb-1">Prioritas Perbaikan: <span className="uppercase text-orange-600">{weakestCategory}</span></h3>
-                                            <p className="text-neutral-600 text-sm leading-relaxed">
-                                                Area <strong className="text-black">{weakestCategory}</strong> memiliki skor terendah. 
-                                                Ini adalah <em>bottleneck</em> utama yang perlu segera dibenahi sebelum mengeksekusi strategi scale-up yang lebih agresif.
-                                            </p>
-                                        </div>
+                                
+                                {/* 1. STATUS KESIAPAN */}
+                                <div className={`mb-10 p-8 rounded-2xl border flex flex-col items-center text-center ${
+                                    isReady ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+                                }`}>
+                                    <h2 className="text-xs font-bold tracking-widest uppercase text-neutral-500 mb-3">STATUS PERUSAHAAN</h2>
+                                    <div className={`text-3xl sm:text-4xl font-bold uppercase tracking-tight mb-3 ${
+                                        isReady ? 'text-green-600' : 'text-red-600'
+                                    }`}>
+                                        {isReady ? 'Sudah Siap Scale Up' : 'Belum Siap Scale Up'}
                                     </div>
+                                    <p className="text-sm text-neutral-600 max-w-md">
+                                        {isReady 
+                                            ? 'Selamat! Fundamental Market Anda sudah memenuhi standar skor minimum (≥ 4.0) untuk mengeksekusi strategi Scale Up.'
+                                            : 'Fundamental Market Anda masih di bawah standar skor 4.0. Anda sangat disarankan untuk memperkuat area ini sebelum melakukan ekspansi masif.'}
+                                    </p>
                                 </div>
 
-                                <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-400 mb-6">Skor Per Kategori (Maks. 5.0)</h4>
+                                {/* 2. PRIORITAS PERBAIKAN */}
+                                {topPriority ? (
+                                    <div className="mb-10 bg-orange-50 border border-orange-100 p-6 rounded-xl relative overflow-hidden">
+                                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-orange-500"></div>
+                                        <div className="flex items-start">
+                                            <Icons.AlertCircle className="w-6 h-6 text-orange-600 mr-4 flex-shrink-0 mt-0.5" />
+                                            <div>
+                                                <h3 className="text-lg font-semibold text-black mb-1">Prioritas Perbaikan Utama: <span className="uppercase text-orange-600">{topPriority}</span></h3>
+                                                <p className="text-neutral-600 text-sm leading-relaxed mb-3">
+                                                    Berdasarkan hierarki (Market &rarr; People &rarr; Operation &rarr; Finance), area <strong className="text-black">{topPriority}</strong> harus menjadi fokus pembenahan Anda karena skornya masih di bawah 4.0 (Skor: <strong>{categories[topPriority].average}</strong>).
+                                                </p>
+                                                {needsImprovement.length > 1 && (
+                                                    <p className="text-xs text-neutral-500 font-medium pt-2 border-t border-orange-200/50">
+                                                        Area lain yang menyusul untuk diperbaiki: {needsImprovement.filter(c => c !== topPriority).join(', ')}.
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="mb-10 bg-green-50 border border-green-100 p-6 rounded-xl relative overflow-hidden">
+                                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-green-500"></div>
+                                        <div className="flex items-start">
+                                            <Icons.Check className="w-6 h-6 text-green-600 mr-4 flex-shrink-0 mt-0.5" />
+                                            <div>
+                                                <h3 className="text-lg font-semibold text-black mb-1">Semua Area Sangat Kuat</h3>
+                                                <p className="text-neutral-600 text-sm leading-relaxed">
+                                                    Luar biasa! Seluruh area fundamental bisnis Anda (Market, People, Operation, Finance) sudah memiliki skor ≥ 4.0. Pertahankan kinerja luar biasa ini!
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-400 mb-6">Skor Per Kategori (Target: ≥ 4.0)</h4>
                                 <div className="space-y-6">
                                     {Object.keys(categories).map((cat) => {
                                         const data = categories[cat];
                                         const percentage = (data.average / 5) * 100;
-                                        const isWeakest = cat === weakestCategory;
+                                        const isNeedsImprovement = data.average < 4;
                                         
                                         return (
                                             <div key={cat} className="relative">
                                                 <div className="flex justify-between mb-2">
-                                                    <span className={`font-medium flex items-center gap-2 ${isWeakest ? 'text-black' : 'text-neutral-600'}`}>
-                                                        <span className={`p-1.5 rounded-md ${isWeakest ? 'bg-orange-100' : 'bg-neutral-100'}`}>{categoryIcons[cat]}</span> 
+                                                    <span className={`font-medium flex items-center gap-2 ${cat === topPriority ? 'text-black' : 'text-neutral-600'}`}>
+                                                        <span className={`p-1.5 rounded-md ${cat === topPriority ? 'bg-orange-100 text-orange-600' : 'bg-neutral-100 text-neutral-500'}`}>{categoryIcons[cat]}</span> 
                                                         {cat}
                                                     </span>
-                                                    <span className={`font-semibold ${isWeakest ? 'text-orange-600' : 'text-black'}`}>
+                                                    <span className={`font-semibold ${isNeedsImprovement ? 'text-orange-600' : 'text-green-600'}`}>
                                                         {data.average} <span className="text-xs font-normal text-neutral-400">/ 5.0</span>
                                                     </span>
                                                 </div>
                                                 <div className="h-2 w-full bg-neutral-100 rounded-full overflow-hidden">
                                                     <div 
-                                                        className={`h-full rounded-full transition-all duration-1000 ease-out ${isWeakest ? 'bg-orange-500' : 'bg-neutral-800'}`}
+                                                        className={`h-full rounded-full transition-all duration-1000 ease-out ${isNeedsImprovement ? 'bg-orange-500' : 'bg-green-500'}`}
                                                         style={{ width: `${percentage}%` }}
                                                     ></div>
                                                 </div>
