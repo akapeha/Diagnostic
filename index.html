@@ -252,7 +252,8 @@
                             systemInstruction: { parts: [{ text: "Berperanlah sebagai konsultan bisnis ahli dan penasihat strategis." }] }
                         };
     
-                        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${GEMINI_API_KEY}`;
+                        // PERBAIKAN 1: Menggunakan model 'gemini-1.5-flash' yang paling stabil untuk API publik
+                        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
                         
                         const response = await fetch(apiUrl, {
                             method: 'POST',
@@ -261,15 +262,18 @@
                         });
     
                         const data = await response.json();
-                        if (data.candidates && data.candidates.length > 0) {
+                        
+                        // PERBAIKAN 2: Menambahkan penanganan error yang lebih informatif
+                        if (response.ok && data.candidates && data.candidates.length > 0) {
                             setAiAnalysis(data.candidates[0].content.parts[0].text);
                         } else {
-                            setAiAnalysis("Maaf, AI gagal memproses analisis saat ini.");
+                            console.error("Detail Error API Gemini:", data);
+                            setAiAnalysis(`Gagal memproses AI. Error dari Google: ${data.error?.message || 'Silakan cek Console Browser (F12) untuk detail error'}`);
                         }
                     }
                 } catch (error) {
-                    console.error("AI Error:", error);
-                    setAiAnalysis("Terjadi kesalahan teknis saat menghubungi server AI. Pastikan API Key valid dan koneksi stabil.");
+                    console.error("AI Catch Error:", error);
+                    setAiAnalysis("Terjadi kesalahan teknis saat menghubungi server AI. Pastikan koneksi internet Anda stabil.");
                 }
                 
                 setIsGeneratingAI(false);
@@ -288,7 +292,7 @@
                     <div className="flex-grow flex items-center justify-center p-6 slide-up pb-20">
                         <div className="w-full">
                             <div className="mb-10 text-center">
-                                <h1 className="text-3xl font-bold tracking-tight text-black mb-3">DIAGNOSTIK KESIAPAN SCALE UP</h1>
+                                <h1 className="text-3xl font-light tracking-tight text-black mb-3">DIAGNOSTIK KESIAPAN SCALE UP</h1>
                                 <p className="text-neutral-500 text-sm max-w-md mx-auto">Silakan isi data diri dan nama produk yang akan dinilai sebelum memulai asesmen.</p>
                             </div>
 
@@ -513,7 +517,7 @@
                             </span>
                         </div>
                         
-                        <h3 className="text-2xl sm:text-4xl font-semibold text-black mb-10 sm:mb-12 leading-[1.3] tracking-tight fade-in">
+                        <h3 className="text-2xl sm:text-4xl font-light text-black mt-6 mb-10 leading-snug fade-in">
                             "{currentQ.pernyataan}"
                         </h3>
 
