@@ -132,9 +132,13 @@
 
             const handleSelectScore = (score) => {
                 setAnswers(prev => ({ ...prev, [currentQ.id]: score }));
-                setTimeout(() => {
-                    handleNext();
-                }, 600);
+                
+                // Hanya auto-lanjut jika BUKAN soal terakhir (Pertanyaan 1-19)
+                if (currentStep < totalQuestions - 1) {
+                    setTimeout(() => {
+                        handleNext();
+                    }, 600);
+                }
             };
 
             const handleNext = () => {
@@ -186,7 +190,7 @@
                 setFinalResult(calculatedResult);
 
                 // 3. Kirim ke Google Sheets
-                if (GOOGLE_SCRIPT_URL !== "https://script.google.com/macros/s/AKfycbwmOGpC_I6KZXdkUCylywofs9Xr81Yo6BGAHTU3EP1zH5WQra5ggtOr1DPO1paVw3tIIw/exec") {
+                if (GOOGLE_SCRIPT_URL.includes("script.google.com")) {
                     try {
                         const submitData = new FormData();
                         submitData.append('Nama_Leader', identity.nama);
@@ -203,7 +207,11 @@
                         submitData.append('Skor_People', categories['People'].average);
                         submitData.append('Skor_Finance', categories['Finance'].average);
 
-                        await fetch(GOOGLE_SCRIPT_URL, { method: 'POST', body: submitData });
+                        await fetch(GOOGLE_SCRIPT_URL, { 
+                            method: 'POST', 
+                            body: submitData,
+                            mode: 'no-cors' // <-- INI SANGAT PENTING AGAR TIDAK DIBLOKIR BROWSER
+                        });
                     } catch (error) {
                         console.error('Error submitting data:', error);
                     }
@@ -236,7 +244,7 @@
                             <form onSubmit={handleIdentitySubmit} className="space-y-6 bg-white p-8 sm:p-10 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-neutral-100">
                                 <div className="space-y-2">
                                     <label className="text-sm font-semibold text-neutral-700 flex items-center gap-2">
-                                        <Icons.User className="w-4 h-4 text-orange-500"/> Nama Leader
+                                        <Icons.User className="w-4 h-4 text-orange-500"/> Nama Leader / Pengisi
                                     </label>
                                     <input 
                                         type="text" 
@@ -453,22 +461,22 @@
                                             `}>
                                                 {option.score}
                                             </div>
-                                            <span className={`text-base font-medium transition-colors ${isSelected ? 'text-orange-900' : 'text-neutral-700 group-hover:text-black'}`}>
+                                            <span className={`text-sm sm:text-base transition-colors ${isSelected ? 'text-orange-900 font-semibold' : 'text-neutral-700 font-medium group-hover:text-neutral-900'}`}>
                                                 {option.label}
                                             </span>
                                         </div>
-
+                                        
                                         <div className={`transition-all duration-200 ${isSelected ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}>
-                                            <Icons.Check className="w-5 h-5 text-orange-500" />
+                                            <Icons.Check className="w-6 h-6 text-orange-500" />
                                         </div>
                                     </button>
                                 );
                             })}
                         </div>
                     </div>
-
-                    {/* Footer Navigation Back Button */}
-                    <div className="w-full pt-8 fade-in flex">
+                    
+                    {/* Footer Navigation Buttons */}
+                    <div className="w-full pt-8 fade-in flex justify-between items-center">
                         <button
                             onClick={handlePrev}
                             disabled={currentStep === 0}
@@ -481,6 +489,22 @@
                             <Icons.ArrowLeft className="w-4 h-4 mr-2" />
                             Soal Sebelumnya
                         </button>
+
+                        {/* Tombol Lihat Hasil Khusus Soal Terakhir */}
+                        {currentStep === totalQuestions - 1 && (
+                            <button
+                                onClick={calculateAndSubmit}
+                                disabled={!currentAnswer}
+                                className={`flex items-center px-6 py-2.5 text-sm font-bold rounded-full transition-all ${
+                                    !currentAnswer
+                                        ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                                        : 'bg-black text-white hover:bg-neutral-800 shadow-lg shadow-black/10'
+                                }`}
+                            >
+                                Lihat Hasil Diagnostik
+                                <Icons.ArrowRight className={`w-4 h-4 ml-2 ${currentAnswer ? 'text-orange-400' : 'text-neutral-400'}`} />
+                            </button>
+                        )}
                     </div>
 
                 </div>
