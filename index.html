@@ -16,29 +16,34 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
-        /* Mencegah highlight biru saat di-tap di mobile */
         * { -webkit-tap-highlight-color: transparent; }
-        
-        /* Animasi kustom untuk transisi halus */
-        .fade-in {
-            animation: fadeIn 0.4s ease-in-out;
-        }
-        
+        .fade-in { animation: fadeIn 0.5s ease-out; }
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
+            from { opacity: 0; transform: translateY(15px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        .slide-up { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Custom scrollbar untuk form yang panjang */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #e5e5e5; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #d4d4d4; }
     </style>
 </head>
-<body class="bg-[#FAFAFA] text-neutral-900 font-sans antialiased min-h-screen flex flex-col">
+<body class="bg-[#FAFAFA] text-neutral-900 font-sans antialiased min-h-screen flex flex-col selection:bg-orange-100 selection:text-orange-900">
 
-    <!-- Tempat aplikasi React akan dimuat -->
-    <div id="root" class="flex-grow flex flex-col"></div>
+    <div id="root" class="flex-grow flex flex-col relative w-full max-w-2xl mx-auto"></div>
 
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // Kumpulan Ikon SVG yang digunakan
+        // --- GANTI URL DI BAWAH INI DENGAN URL GOOGLE APPS SCRIPT ANDA ---
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwmOGpC_I6KZXdkUCylywofs9Xr81Yo6BGAHTU3EP1zH5WQra5ggtOr1DPO1paVw3tIIw/exec";
+        
         const Icons = {
             Check: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 6 9 17l-5-5"/></svg>,
             ArrowRight: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>,
@@ -49,7 +54,10 @@
             Briefcase: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>,
             Settings: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>,
             Users: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
-            DollarSign: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            DollarSign: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>,
+            User: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+            Building: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>,
+            Loader: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
         };
 
         const questions = [
@@ -95,25 +103,34 @@
         };
 
         function App() {
+            // App states: 'identity', 'quiz', 'submitting', 'result'
+            const [formState, setFormState] = useState('identity');
+            const [identity, setIdentity] = useState({ nama: '', divisi: '' });
             const [currentStep, setCurrentStep] = useState(0);
             const [answers, setAnswers] = useState({});
-            const [isFinished, setIsFinished] = useState(false);
             const [animateKey, setAnimateKey] = useState(0);
+            const [finalResult, setFinalResult] = useState(null);
 
             const totalQuestions = questions.length;
             const currentQ = questions[currentStep];
             const currentAnswer = answers[currentQ?.id];
 
-            // Efek scroll to top setiap ganti soal
             useEffect(() => {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-                setAnimateKey(prev => prev + 1);
-            }, [currentStep]);
+                if (formState === 'quiz') {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    setAnimateKey(prev => prev + 1);
+                }
+            }, [currentStep, formState]);
+
+            const handleIdentitySubmit = (e) => {
+                e.preventDefault();
+                if (identity.nama.trim() !== '' && identity.divisi.trim() !== '') {
+                    setFormState('quiz');
+                }
+            };
 
             const handleSelectScore = (score) => {
                 setAnswers(prev => ({ ...prev, [currentQ.id]: score }));
-                
-                // Auto-advance setelah delay agar user melihat animasinya
                 setTimeout(() => {
                     handleNext();
                 }, 600);
@@ -125,7 +142,7 @@
                 } else {
                     const isAllFilled = questions.every(q => answers[q.id] !== undefined);
                     if (isAllFilled) {
-                        setIsFinished(true);
+                        calculateAndSubmit();
                     }
                 }
             };
@@ -136,13 +153,10 @@
                 }
             };
 
-            const handleRestart = () => {
-                setAnswers({});
-                setCurrentStep(0);
-                setIsFinished(false);
-            };
-
-            const calculateResults = () => {
+            const calculateAndSubmit = async () => {
+                setFormState('submitting');
+                
+                // 1. Kalkulasi Kategori
                 const categories = {
                     Market: { total: 0, count: 5 },
                     Operation: { total: 0, count: 5 },
@@ -157,42 +171,132 @@
                     }
                 });
 
-                // Hitung Rata-rata
                 Object.keys(categories).forEach(cat => {
                     categories[cat].average = parseFloat((categories[cat].total / categories[cat].count).toFixed(1));
                 });
 
-                // 1. Kriteria Kesiapan Scale Up (Market >= 4)
+                // 2. Evaluasi Status & Prioritas (Market Utama)
                 const isReady = categories['Market'].average >= 4;
-
-                // 2. Tentukan area yang perlu diperbaiki (Skor < 4) 
-                // Diurutkan berdasarkan hierarki prioritas
                 const priorityOrder = ['Market', 'People', 'Operation', 'Finance'];
                 const needsImprovement = priorityOrder.filter(cat => categories[cat].average < 4);
-                
-                // Prioritas utama adalah urutan pertama dari array yang butuh perbaikan
                 const topPriority = needsImprovement.length > 0 ? needsImprovement[0] : null;
 
-                return { categories, isReady, needsImprovement, topPriority };
+                const calculatedResult = { categories, isReady, needsImprovement, topPriority };
+                setFinalResult(calculatedResult);
+
+                // 3. Kirim ke Google Sheets
+                if (GOOGLE_SCRIPT_URL !== "https://script.google.com/macros/s/AKfycbwmOGpC_I6KZXdkUCylywofs9Xr81Yo6BGAHTU3EP1zH5WQra5ggtOr1DPO1paVw3tIIw/exec") {
+                    try {
+                        const submitData = new FormData();
+                        submitData.append('Nama_Leader', identity.nama);
+                        submitData.append('Nama_Divisi', identity.divisi);
+                        
+                        // MENYIMPAN NILAI DARI PERTANYAAN 1-20
+                        for (let i = 1; i <= 20; i++) {
+                            submitData.append(`Q${i}`, answers[i] || 0);
+                        }
+
+                        // MENYIMPAN SKOR RATA-RATA
+                        submitData.append('Skor_Market', categories['Market'].average);
+                        submitData.append('Skor_Operation', categories['Operation'].average);
+                        submitData.append('Skor_People', categories['People'].average);
+                        submitData.append('Skor_Finance', categories['Finance'].average);
+
+                        await fetch(GOOGLE_SCRIPT_URL, { method: 'POST', body: submitData });
+                    } catch (error) {
+                        console.error('Error submitting data:', error);
+                    }
+                }
+                
+                // Lanjut ke halaman hasil (memberikan sedikit delay agar natural)
+                setTimeout(() => {
+                    setFormState('result');
+                }, 1000);
             };
 
-            if (isFinished) {
-                const { categories, isReady, needsImprovement, topPriority } = calculateResults();
+            const handleRestart = () => {
+                setIdentity({ nama: '', divisi: '' });
+                setAnswers({});
+                setCurrentStep(0);
+                setFinalResult(null);
+                setFormState('identity');
+            };
+
+            if (formState === 'identity') {
+                return (
+                    <div className="flex-grow flex items-center justify-center p-6 slide-up">
+                        <div className="w-full">
+                            <div className="mb-10 text-center">
+                                <h1 className="text-3xl font-light tracking-tight text-black mb-3">DIAGNOSTIK KESIAPAN SCALE UP</h1>
+                                <p className="text-neutral-500 text-sm max-w-md mx-auto">Silakan lengkapi identitas Anda terlebih dahulu sebelum memulai asesmen kesehatan perusahaan.</p>
+                            </div>
+
+                            <form onSubmit={handleIdentitySubmit} className="space-y-6 bg-white p-8 sm:p-10 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-neutral-100">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-neutral-700 flex items-center gap-2">
+                                        <Icons.User className="w-4 h-4 text-orange-500"/> Nama Leader / Pengisi
+                                    </label>
+                                    <input 
+                                        type="text" 
+                                        required
+                                        value={identity.nama}
+                                        onChange={(e) => setIdentity({...identity, nama: e.target.value})}
+                                        className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-neutral-50 focus:bg-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all text-black"
+                                        placeholder="Masukkan nama lengkap Anda..."
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-neutral-700 flex items-center gap-2">
+                                        <Icons.Building className="w-4 h-4 text-orange-500"/> Nama Divisi / Perusahaan
+                                    </label>
+                                    <input 
+                                        type="text" 
+                                        required
+                                        value={identity.divisi}
+                                        onChange={(e) => setIdentity({...identity, divisi: e.target.value})}
+                                        className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-neutral-50 focus:bg-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all text-black"
+                                        placeholder="Contoh: English Test & Course, Bakat, OFO, EXCO..."
+                                    />
+                                </div>
+                                <div className="pt-4">
+                                    <button 
+                                        type="submit" 
+                                        className="w-full flex items-center justify-center px-6 py-4 bg-black text-white font-bold rounded-xl hover:bg-neutral-800 transition-colors shadow-lg shadow-black/10"
+                                    >
+                                        Mulai Diagnostik <Icons.ArrowRight className="w-5 h-5 ml-2 text-orange-400" />
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (formState === 'submitting') {
+                return (
+                    <div className="flex-grow flex flex-col items-center justify-center p-6 fade-in">
+                        <Icons.Loader className="w-10 h-10 text-orange-500 animate-spin mb-6" />
+                        <h2 className="text-xl font-medium text-black mb-2">Menyimpan Hasil Asesmen...</h2>
+                        <p className="text-neutral-500 text-sm">Mohon tunggu sebentar, kami sedang mengkalkulasi data Anda.</p>
+                    </div>
+                );
+            }
+
+            if (formState === 'result' && finalResult) {
+                const { categories, isReady, needsImprovement, topPriority } = finalResult;
                 
                 return (
-                    <div className="flex-grow flex items-center justify-center p-4 sm:p-8 bg-[#FAFAFA] fade-in">
-                        <div className="w-full max-w-2xl bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-neutral-100">
-                            
-                            <div className="bg-black text-white p-10 text-center relative rounded-t-2xl">
-                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-orange-600 rounded-t-2xl"></div>
+                    <div className="flex-grow flex items-center justify-center p-4 sm:p-8 slide-up pb-20">
+                        <div className="w-full bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-neutral-100 overflow-hidden">
+                            <div className="bg-black text-white p-10 text-center relative">
+                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-orange-600"></div>
                                 <Icons.BarChart2 className="w-12 h-12 mx-auto mb-4 text-orange-500 opacity-90" />
                                 <h1 className="text-2xl sm:text-3xl font-light tracking-tight mb-2">HASIL DIAGNOSTIK</h1>
-                                <p className="text-neutral-400 text-sm">Analisis kesiapan Scale-Up perusahaan Anda.</p>
+                                <p className="text-neutral-400 text-sm">Hi <strong className="text-white">{identity.nama}</strong> ({identity.divisi}), ini adalah analisis kesiapan Anda.</p>
                             </div>
 
                             <div className="p-8 sm:p-10">
-                                
-                                {/* 1. STATUS KESIAPAN */}
+                                {/* 1. STATUS KESIAPAN (Syarat Mutlak: Market >= 4) */}
                                 <div className={`mb-10 p-8 rounded-2xl border flex flex-col items-center text-center ${
                                     isReady ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
                                 }`}>
@@ -202,48 +306,49 @@
                                     }`}>
                                         {isReady ? 'Sudah Siap Scale Up' : 'Belum Siap Scale Up'}
                                     </div>
-                                    <p className="text-sm text-neutral-600 max-w-md">
+                                    <p className="text-sm text-neutral-700 max-w-md">
                                         {isReady 
-                                            ? 'Selamat! Fundamental Market Anda sudah memenuhi standar skor minimum (≥ 4.0) untuk mengeksekusi strategi Scale Up.'
-                                            : 'Fundamental Market Anda masih di bawah standar skor 4.0. Anda sangat disarankan untuk memperkuat area ini sebelum melakukan ekspansi masif.'}
+                                            ? 'Fundamental Market Anda telah memenuhi standar (Skor ≥ 4.0). Perusahaan memiliki fondasi yang cukup untuk mengeksekusi strategi Scale Up.'
+                                            : 'Fundamental Market Anda masih di bawah standar skor 4.0. Anda WAJIB memprioritaskan pembenahan Market sebelum melakukan ekspansi masif agar tidak menghamburkan sumber daya.'}
                                     </p>
                                 </div>
 
-                                {/* 2. PRIORITAS PERBAIKAN */}
+                                {/* 2. PRIORITAS PERBAIKAN (< 4.0 dengan Hierarki Market -> People -> Operation -> Finance) */}
                                 {topPriority ? (
-                                    <div className="mb-10 bg-orange-50 border border-orange-100 p-6 rounded-xl relative overflow-hidden">
-                                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-orange-500"></div>
+                                    <div className="mb-10 bg-orange-50 border border-orange-100 p-6 rounded-2xl relative overflow-hidden">
+                                        <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-orange-500"></div>
                                         <div className="flex items-start">
                                             <Icons.AlertCircle className="w-6 h-6 text-orange-600 mr-4 flex-shrink-0 mt-0.5" />
                                             <div>
-                                                <h3 className="text-lg font-semibold text-black mb-1">Prioritas Perbaikan Utama: <span className="uppercase text-orange-600">{topPriority}</span></h3>
-                                                <p className="text-neutral-600 text-sm leading-relaxed mb-3">
-                                                    Berdasarkan hierarki (Market &rarr; People &rarr; Operation &rarr; Finance), area <strong className="text-black">{topPriority}</strong> harus menjadi fokus pembenahan Anda karena skornya masih di bawah 4.0 (Skor: <strong>{categories[topPriority].average}</strong>).
+                                                <h3 className="text-lg font-semibold text-black mb-2">Prioritas Perbaikan Utama: <span className="uppercase text-orange-600">{topPriority}</span></h3>
+                                                <p className="text-neutral-700 text-sm leading-relaxed mb-3">
+                                                    Meskipun {isReady ? 'Anda siap Scale Up' : 'belum siap Scale Up'}, terdapat kelemahan (*bottleneck*) yang terdeteksi. Berdasarkan hierarki prioritas (Market &rarr; People &rarr; Operation &rarr; Finance), area <strong className="text-black">{topPriority}</strong> harus menjadi <strong>fokus #1</strong> pembenahan Anda karena skor rata-ratanya masih di bawah standar 4.0 (Skor Anda: <strong>{categories[topPriority].average}</strong>).
                                                 </p>
                                                 {needsImprovement.length > 1 && (
-                                                    <p className="text-xs text-neutral-500 font-medium pt-2 border-t border-orange-200/50">
-                                                        Area lain yang menyusul untuk diperbaiki: {needsImprovement.filter(c => c !== topPriority).join(', ')}.
+                                                    <p className="text-xs text-neutral-500 font-medium pt-3 border-t border-orange-200/50">
+                                                        Area lain yang juga mendapat nilai &lt; 4.0 dan menyusul untuk diperbaiki: <span className="text-neutral-800">{needsImprovement.filter(c => c !== topPriority).join(', ')}</span>.
                                                     </p>
                                                 )}
                                             </div>
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="mb-10 bg-green-50 border border-green-100 p-6 rounded-xl relative overflow-hidden">
-                                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-green-500"></div>
+                                    <div className="mb-10 bg-green-50 border border-green-100 p-6 rounded-2xl relative overflow-hidden">
+                                        <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-green-500"></div>
                                         <div className="flex items-start">
                                             <Icons.Check className="w-6 h-6 text-green-600 mr-4 flex-shrink-0 mt-0.5" />
                                             <div>
                                                 <h3 className="text-lg font-semibold text-black mb-1">Semua Area Sangat Kuat</h3>
-                                                <p className="text-neutral-600 text-sm leading-relaxed">
-                                                    Luar biasa! Seluruh area fundamental bisnis Anda (Market, People, Operation, Finance) sudah memiliki skor ≥ 4.0. Pertahankan kinerja luar biasa ini!
+                                                <p className="text-neutral-700 text-sm leading-relaxed">
+                                                    Luar biasa! Seluruh area fundamental bisnis Anda (Market, People, Operation, Finance) sudah memiliki skor ≥ 4.0. Tidak ada *bottleneck* mayor yang terdeteksi. Pertahankan kinerja luar biasa ini saat berekspansi!
                                                 </p>
                                             </div>
                                         </div>
                                     </div>
                                 )}
 
-                                <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-400 mb-6">Skor Per Kategori (Target: ≥ 4.0)</h4>
+                                {/* 3. SKOR PER KATEGORI */}
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-400 mb-6">Detail Skor Per Kategori (Target: ≥ 4.0)</h4>
                                 <div className="space-y-6">
                                     {Object.keys(categories).map((cat) => {
                                         const data = categories[cat];
@@ -253,15 +358,15 @@
                                         return (
                                             <div key={cat} className="relative">
                                                 <div className="flex justify-between mb-2">
-                                                    <span className={`font-medium flex items-center gap-2 ${cat === topPriority ? 'text-black' : 'text-neutral-600'}`}>
+                                                    <span className={`font-semibold flex items-center gap-2 ${cat === topPriority ? 'text-black' : 'text-neutral-600'}`}>
                                                         <span className={`p-1.5 rounded-md ${cat === topPriority ? 'bg-orange-100 text-orange-600' : 'bg-neutral-100 text-neutral-500'}`}>{categoryIcons[cat]}</span> 
-                                                        {cat}
+                                                        {cat} {cat === topPriority && <span className="text-[10px] bg-orange-600 text-white px-2 py-0.5 rounded-full ml-1">Prioritas 1</span>}
                                                     </span>
-                                                    <span className={`font-semibold ${isNeedsImprovement ? 'text-orange-600' : 'text-green-600'}`}>
+                                                    <span className={`font-bold ${isNeedsImprovement ? 'text-orange-600' : 'text-green-600'}`}>
                                                         {data.average} <span className="text-xs font-normal text-neutral-400">/ 5.0</span>
                                                     </span>
                                                 </div>
-                                                <div className="h-2 w-full bg-neutral-100 rounded-full overflow-hidden">
+                                                <div className="h-2.5 w-full bg-neutral-100 rounded-full overflow-hidden">
                                                     <div 
                                                         className={`h-full rounded-full transition-all duration-1000 ease-out ${isNeedsImprovement ? 'bg-orange-500' : 'bg-green-500'}`}
                                                         style={{ width: `${percentage}%` }}
@@ -290,13 +395,13 @@
             const progressPercentage = ((currentStep) / totalQuestions) * 100;
 
             return (
-                <div className="flex-grow flex flex-col items-center p-4 sm:p-8 w-full max-w-3xl mx-auto">
+                <div className="w-full flex-grow flex flex-col px-6 pb-20">
                     
                     {/* Header Sticky */}
-                    <div className="w-full pt-4 pb-8 border-b border-neutral-200/60 sticky top-0 bg-[#FAFAFA] z-10">
+                    <div className="w-full pt-6 pb-4 bg-[#FAFAFA]/90 backdrop-blur-md sticky top-0 z-10">
                         <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-sm font-bold tracking-widest uppercase text-neutral-400">DIAGNOSTIK KESIAPAN SCALE UP</h2>
-                            <span className="text-xs font-bold px-3 py-1 bg-orange-100 text-orange-700 rounded-full">
+                            <h2 className="text-xs font-bold tracking-widest uppercase text-neutral-400">DIAGNOSTIK KESIAPAN SCALE UP</h2>
+                            <span className="text-[11px] font-bold px-3 py-1 bg-orange-100 text-orange-700 rounded-full">
                                 {currentStep + 1} / {totalQuestions}
                             </span>
                         </div>
@@ -310,43 +415,43 @@
                     </div>
 
                     {/* Question Content */}
-                    <div className="w-full flex-grow flex flex-col py-8 sm:py-12" key={animateKey}>
+                    <div className="w-full flex-grow flex flex-col pt-8" key={animateKey}>
                         
                         <div className="mb-6 fade-in">
                             <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-orange-700 bg-orange-100 px-3 py-1.5 rounded-full">
                                 {categoryIcons[currentQ.bidang]} {currentQ.bidang}
                             </span>
-                            <span className="inline-block mt-2 sm:mt-0 sm:ml-4 text-sm text-neutral-500 font-medium">
-                                {currentQ.aspek}
+                            <span className="inline-block mt-2 sm:mt-0 sm:ml-3 text-sm text-neutral-500 font-medium">
+                                &bull; {currentQ.aspek}
                             </span>
                         </div>
                         
-                        <h3 className="text-2xl sm:text-4xl font-light text-black mb-12 leading-tight sm:leading-tight tracking-tight fade-in">
+                        <h3 className="text-2xl sm:text-4xl font-light text-black mb-10 sm:mb-12 leading-[1.3] tracking-tight fade-in">
                             "{currentQ.pernyataan}"
                         </h3>
 
-                        {/* Interactive List (replaces dropdown) */}
-                        <div className="mt-auto space-y-3 fade-in">
+                        {/* Interactive List Options (Seamless) */}
+                        <div className="space-y-3 fade-in mt-auto">
                             {scoringOptions.map((option) => {
                                 const isSelected = currentAnswer === option.score;
                                 return (
                                     <button
                                         key={option.score}
                                         onClick={() => handleSelectScore(option.score)}
-                                        className={`w-full group text-left px-5 py-4 rounded-2xl border-2 transition-all duration-200 flex items-center justify-between
+                                        className={`w-full group text-left px-5 py-4 rounded-2xl border-2 transition-all duration-200 flex items-center justify-between outline-none
                                             ${isSelected 
-                                                ? 'bg-orange-50 border-orange-500 shadow-[0_4px_14px_0_rgba(249,115,22,0.1)]' 
-                                                : 'bg-white border-white hover:border-neutral-200 hover:bg-neutral-50 shadow-sm'
+                                                ? 'bg-orange-50 border-orange-500 shadow-[0_4px_14px_0_rgba(249,115,22,0.15)]' 
+                                                : 'bg-white border-transparent hover:border-orange-200 hover:bg-neutral-50 shadow-sm'
                                             }
                                         `}
                                     >
                                         <div className="flex items-center">
                                             <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold mr-4 transition-colors
-                                                ${isSelected ? 'bg-orange-500 text-white' : 'bg-neutral-100 text-neutral-500 group-hover:bg-neutral-200'}
+                                                ${isSelected ? 'bg-orange-500 text-white' : 'bg-neutral-100 text-neutral-500 group-hover:bg-orange-100 group-hover:text-orange-600'}
                                             `}>
                                                 {option.score}
                                             </div>
-                                            <span className={`text-base font-medium transition-colors ${isSelected ? 'text-black' : 'text-neutral-700 group-hover:text-black'}`}>
+                                            <span className={`text-base font-medium transition-colors ${isSelected ? 'text-orange-900' : 'text-neutral-700 group-hover:text-black'}`}>
                                                 {option.label}
                                             </span>
                                         </div>
@@ -360,8 +465,8 @@
                         </div>
                     </div>
 
-                    {/* Footer Navigation */}
-                    <div className="w-full pt-6 pb-8 border-t border-neutral-200/60 flex items-center justify-between fade-in mt-4">
+                    {/* Footer Navigation Back Button */}
+                    <div className="w-full pt-8 fade-in flex">
                         <button
                             onClick={handlePrev}
                             disabled={currentStep === 0}
@@ -372,20 +477,7 @@
                             }`}
                         >
                             <Icons.ArrowLeft className="w-4 h-4 mr-2" />
-                            Sebelumnya
-                        </button>
-
-                        <button
-                            onClick={handleNext}
-                            disabled={!currentAnswer}
-                            className={`flex items-center px-6 py-3 text-sm font-bold rounded-full transition-all duration-300 ${
-                                !currentAnswer
-                                    ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
-                                    : 'bg-black text-white hover:bg-neutral-800 hover:shadow-lg transform hover:-translate-y-0.5'
-                            }`}
-                        >
-                            {currentStep === totalQuestions - 1 ? 'Lihat Hasil Asesmen' : 'Selanjutnya'}
-                            <Icons.ArrowRight className={`w-4 h-4 ml-2 ${currentAnswer ? 'text-orange-400' : ''}`} />
+                            Soal Sebelumnya
                         </button>
                     </div>
 
