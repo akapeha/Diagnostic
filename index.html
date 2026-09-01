@@ -18,9 +18,6 @@
     <!-- Babel untuk menerjemahkan JSX di browser -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- Marked.js untuk mengubah Markdown dari AI menjadi HTML -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-
     <style>
         * { -webkit-tap-highlight-color: transparent; }
         body { background-color: #FAFAFA; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
@@ -48,11 +45,8 @@
         // PERBAIKAN: Menggunakan '=' bukan 'from' untuk objek global React
         const { useState, useEffect, useRef } = React;
 
-        // --- KONFIGURASI URL & API KEY ---
+        // --- KONFIGURASI URL GOOGLE SCRIPT ---
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwmOGpC_I6KZXdkUCylywofs9Xr81Yo6BGAHTU3EP1zH5WQra5ggtOr1DPO1paVw3tIIw/exec";
-        
-        // JANGAN LUPA: Masukkan API Key Gemini Anda di dalam tanda kutip di bawah ini sebelum upload ke GitHub.
-        const GEMINI_API_KEY = "AQ.Ab8RN6LZJ4I4W72XXcfbhTd7VFzIzDVXkdu4luwkBTE7eFn3pg"; 
         // ---------------------------------
         
         const Icons = {
@@ -100,11 +94,11 @@
         ];
 
         const scoringOptions = [
-            { score: 1, label: "Sangat Tidak Sesuai" },
-            { score: 2, label: "Kurang Sesuai" },
-            { score: 3, label: "Cukup Sesuai" },
-            { score: 4, label: "Sesuai" },
-            { score: 5, label: "Sangat Sesuai" },
+            { score: 1, label: "Sangat Tidak Sesuai / Sangat Lemah" },
+            { score: 2, label: "Kurang Sesuai / Lemah" },
+            { score: 3, label: "Cukup Sesuai / Sedang" },
+            { score: 4, label: "Sesuai / Kuat" },
+            { score: 5, label: "Sangat Sesuai / Sangat Kuat" },
         ];
 
         const categoryIcons = {
@@ -122,8 +116,6 @@
             const [answers, setAnswers] = useState({});
             const [animateKey, setAnimateKey] = useState(0);
             const [finalResult, setFinalResult] = useState(null);
-            const [aiAnalysis, setAiAnalysis] = useState(""); 
-            const [isGeneratingAI, setIsGeneratingAI] = useState(false);
 
             const totalQuestions = questions.length;
             const currentQ = questions[currentStep];
@@ -168,7 +160,6 @@
 
             const calculateAndSubmit = async () => {
                 setFormState('submitting');
-                setIsGeneratingAI(true);
                 
                 // 1. Kalkulasi Kategori
                 const categories = {
@@ -198,7 +189,7 @@
                 const calculatedResult = { categories, isReady, needsImprovement, topPriority };
                 setFinalResult(calculatedResult);
 
-                // 3. Kirim ke Google Sheets (Secara Asynchronous tanpa mengganggu UI)
+                // 3. Kirim ke Google Sheets
                 if (GOOGLE_SCRIPT_URL.includes("script.google.com")) {
                     try {
                         const submitData = new FormData();
@@ -225,59 +216,11 @@
                         console.error('Error in fetch:', error);
                     }
                 }
-
-                // 4. Proses Ekstraksi Gemini AI
-                try {
-                    if(!GEMINI_API_KEY || GEMINI_API_KEY.trim() === "") {
-                         setAiAnalysis("Sistem AI belum dikonfigurasi (API Key kosong). Mohon perhatikan matriks kelemahan Anda secara manual.");
-                    } else {
-                        // Menyusun prompt
-                        let promptData = `Anda adalah seorang konsultan bisnis dan ahli scale-up startup. Tolong berikan analisis singkat namun tajam dan Action Plan taktis untuk produk bernama "${identity.produk}" yang dipimpin oleh ${identity.nama}.\n\n`;
-                        promptData += `Status Asesmen:\n- Kesiapan: ${isReady ? 'SUDAH SIAP SCALE UP (Market kuat)' : 'BELUM SIAP SCALE UP (Market lemah)'}.\n`;
-                        promptData += `- Hambatan Utama (Prioritas Perbaikan 1): ${topPriority ? topPriority : 'Tidak ada, semua sempurna'}.\n\n`;
-                        promptData += `Ini detail kelemahan & kekuatan mereka (Skor 1-5, di mana 1 sangat lemah, 5 sangat kuat):\n`;
-                        
-                        questions.forEach(q => {
-                            promptData += `- [${q.bidang}] ${q.aspek}: Skor ${answers[q.id]}\n`;
-                        });
-    
-                        promptData += `\nInstruksi untuk Anda:
-    1. Berikan analisis ringkas tentang prospek produk ini.
-    2. Buatkan **Action Plan** yang bisa langsung dieksekusi, berfokus HANYA pada penyelesaian masalah di aspek yang mendapat skor 1, 2, atau 3.
-    3. Gunakan format Markdown rapi (Heading 3, Bullet points, tulisan Bold).
-    4. Bahasa Indonesia profesional, tidak bertele-tele. Jangan gunakan tag HTML.`;
-    
-                        const aiPayload = {
-                            contents: [{ parts: [{ text: promptData }] }],
-                            systemInstruction: { parts: [{ text: "Berperanlah sebagai konsultan bisnis ahli dan penasihat strategis." }] }
-                        };
-    
-                        // PERBAIKAN 1: Menggunakan model 'gemini-1.5-flash' yang paling stabil untuk API publik
-                        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-                        
-                        const response = await fetch(apiUrl, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(aiPayload)
-                        });
-    
-                        const data = await response.json();
-                        
-                        // PERBAIKAN 2: Menambahkan penanganan error yang lebih informatif
-                        if (response.ok && data.candidates && data.candidates.length > 0) {
-                            setAiAnalysis(data.candidates[0].content.parts[0].text);
-                        } else {
-                            console.error("Detail Error API Gemini:", data);
-                            setAiAnalysis(`Gagal memproses AI. Error dari Google: ${data.error?.message || 'Silakan cek Console Browser (F12) untuk detail error'}`);
-                        }
-                    }
-                } catch (error) {
-                    console.error("AI Catch Error:", error);
-                    setAiAnalysis("Terjadi kesalahan teknis saat menghubungi server AI. Pastikan koneksi internet Anda stabil.");
-                }
                 
-                setIsGeneratingAI(false);
-                setFormState('result');
+                // Beri sedikit jeda loading agar natural
+                setTimeout(() => {
+                    setFormState('result');
+                }, 1500);
             };
 
             const handleRestart = () => {
@@ -341,13 +284,9 @@
                 return (
                     <div className="flex-grow flex flex-col items-center justify-center p-6 fade-in h-screen">
                         <Icons.Loader className="w-12 h-12 text-orange-500 animate-spin mb-6" />
-                        <h2 className="text-xl font-bold text-black mb-2">
-                            {isGeneratingAI ? 'AI Sedang Menganalisis...' : 'Menyimpan Hasil Asesmen...'}
-                        </h2>
+                        <h2 className="text-xl font-bold text-black mb-2">Menyimpan Hasil Asesmen...</h2>
                         <p className="text-neutral-500 text-sm text-center max-w-sm">
-                            {isGeneratingAI 
-                                ? 'Konsultan AI kami sedang menyusun Action Plan taktis khusus untuk kelemahan bisnis Anda. Mohon tunggu sebentar.' 
-                                : 'Mengirim data ke server...'}
+                            Mengirim data ke server dan mengkalkulasi matriks kesiapan Anda...
                         </p>
                     </div>
                 );
@@ -446,26 +385,6 @@
                                             </div>
                                         );
                                     })}
-                                </div>
-
-                                {/* 4. KOTAK AI ACTION PLAN */}
-                                <div className="mt-12 pt-10 border-t border-neutral-200">
-                                    <div className="flex items-center gap-3 mb-6">
-                                        <div className="p-2.5 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl shadow-sm">
-                                            <Icons.FileText className="w-5 h-5 text-white" />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-xl font-bold text-black tracking-tight">Rekomendasi Konsultan (AI)</h3>
-                                            <p className="text-xs text-neutral-500 font-medium">Berdasarkan kelemahan detail per-poin yang Anda isi.</p>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="bg-neutral-50/70 rounded-2xl p-6 sm:p-8 border border-neutral-100">
-                                        <div 
-                                            className="prose prose-sm sm:prose-base prose-neutral max-w-none prose-headings:font-bold prose-h3:text-lg prose-h3:text-black prose-a:text-orange-600 prose-li:marker:text-orange-500"
-                                            dangerouslySetInnerHTML={{ __html: marked.parse(aiAnalysis) }}
-                                        />
-                                    </div>
                                 </div>
 
                                 <div className="mt-14 text-center border-t border-neutral-100 pt-8">
